@@ -1,18 +1,35 @@
 <template>
   <div id="home">
     <nav-bar class="home-nav"><div slot="center">购物街</div></nav-bar>
-    <scroll class="content" ref="scroll">
-      <home-swiper :banners="banners"></home-swiper>
+    <tab-control
+      :titles="['流行', '新款', '精选']"
+      @tabClick="tabClick"
+      ref="tabControl1"
+      class="tab-control"
+      v-show="isTabFixed"
+    ></tab-control>
+    <scroll
+      class="content"
+      ref="scroll"
+      :probe-type="3"
+      @scroll="contentScroll"
+      :pullUpLoad="true"
+      @pullingUp="loadMore"
+    >
+      <home-swiper
+        :banners="banners"
+        @swiperImageload="swiperImageload"
+      ></home-swiper>
       <recommend-view :recommends="recommends"></recommend-view>
       <feature-view></feature-view>
       <tab-control
-        class="tab-control"
         :titles="['流行', '新款', '精选']"
         @tabClick="tabClick"
+        ref="tabControl2"
       ></tab-control>
       <goods-list :goods="showGoods"></goods-list>
-    </scroll>  
-    <back-top @click.native="backClick"></back-top>
+    </scroll>
+    <back-top @click.native="backClick" v-show="isShowBackTop"></back-top>
   </div>
 </template>
 
@@ -25,7 +42,8 @@ import FeatureView from "./childComps/FeatureView.vue";
 import TabControl from "../../components/content/tabControl/TabControl.vue";
 import GoodsList from "../../components/content/goods/GoodsList.vue";
 import Scroll from "../../components/common/scroll/Scroll.vue";
-import BackTop from '../../components/content/backTop/BackTop.vue';
+import BackTop from "../../components/content/backTop/BackTop.vue";
+import { debounce } from "../../common/util";
 
 export default {
   name: "Home",
@@ -50,6 +68,10 @@ export default {
         sell: { page: 0, list: [] },
       },
       currentType: "pop",
+      isShowBackTop: "false",
+      tabOffSetTop: 0,
+      isTabFixed: false,
+      saveY: 0,
     };
   },
   computed: {
@@ -63,6 +85,24 @@ export default {
     this.getHomeGoods("new");
     this.getHomeGoods("sell");
   },
+  mounted() {
+    //监听item中图片加载完成
+    const refresh = debounce(this.$refs.scroll.refresh, 500);
+
+    this.$bus.$on("itemImageLoad", () => {
+      refresh();
+    });
+  },
+
+  activated(){
+    this.$refs.scroll.scrollTo(0,this.saveY,0);
+    this.$refs.scroll.refresh();
+  },
+
+  deactivated(){
+    this.saveY = this.$refs.scroll.scroll.y;
+  },
+
   methods: {
     tabClick(index) {
       switch (index) {
@@ -76,15 +116,31 @@ export default {
           this.currentType = "sell";
           break;
       }
+      this.$refs.tabControl1.currentIndex = index;
+      this.$refs.tabControl2.currentIndex = index;
     },
 
-    backClick(){
-      this.$refs.scroll.scrollTo(0,0,500);
+    backClick() {
+      this.$refs.scroll.scrollTo(0, 0, 500);
+    },
+
+    contentScroll(position) {
+      this.isShowBackTop = -position.y > 1000;
+
+      this.isTabFixed = -position.y > this.tabOffSetTop;
+    },
+
+    loadMore() {
+      this.getHomeGoods(this.currentType);
+      // this.$refs.scroll.scroll.refresh();
+    },
+
+    swiperImageload() {
+      this.tabOffSetTop = this.$refs.tabControl2.$el.offsetTop;
     },
 
     getHomeMultidata() {
       getHomeMultidata().then((res) => {
-        console.log(res);
         this.banners = res.data.data.banner.list;
         this.recommends = res.data.data.recommend.list;
       });
@@ -96,7 +152,7 @@ export default {
       getHomeGoods(type, page).then((res) => {
         this.goods[type].list.push(...res.data.data.list); //将数值保存在list中
         this.goods[type].page += 1; //page加1
-        console.log(res.data.data);
+        this.$refs.scroll.finishPullUp();
       });
     },
   },
@@ -105,7 +161,7 @@ export default {
 
 <style scoped>
 #home {
-  padding-top: 44px;
+  /* padding-top: 44px; */
   position: relative;
   height: 100vh;
 }
@@ -113,20 +169,19 @@ export default {
 .home-nav {
   background-color: #ff8198;
   color: aliceblue;
-  position: fixed;
+  /* position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  z-index: 9;
+  z-index: 9; */
 }
 
 .tab-control {
-  position: sticky;
-  top: 44px;
+  position: relative;
   z-index: 9;
 }
 
-.content{
+.content {
   overflow: hidden;
   position: absolute;
   top: 44px;
