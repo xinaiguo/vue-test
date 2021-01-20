@@ -1,6 +1,13 @@
 <template>
   <div id="home">
     <nav-bar class="home-nav"><div slot="center">购物街</div></nav-bar>
+    <tab-control
+      :titles="['流行', '新款', '精选']"
+      @tabClick="tabClick"
+      ref="tabControl1"
+      class="tab-control"
+      v-show="isTabFixed"
+    ></tab-control>
     <scroll
       class="content"
       ref="scroll"
@@ -9,12 +16,16 @@
       :pullUpLoad="true"
       @pullingUp="loadMore"
     >
-      <home-swiper :banners="banners"></home-swiper>
+      <home-swiper
+        :banners="banners"
+        @swiperImageload="swiperImageload"
+      ></home-swiper>
       <recommend-view :recommends="recommends"></recommend-view>
       <feature-view></feature-view>
       <tab-control
         :titles="['流行', '新款', '精选']"
         @tabClick="tabClick"
+        ref="tabControl2"
       ></tab-control>
       <goods-list :goods="showGoods"></goods-list>
     </scroll>
@@ -32,7 +43,7 @@ import TabControl from "../../components/content/tabControl/TabControl.vue";
 import GoodsList from "../../components/content/goods/GoodsList.vue";
 import Scroll from "../../components/common/scroll/Scroll.vue";
 import BackTop from "../../components/content/backTop/BackTop.vue";
-import {debounce} from "../../common/util";
+import { debounce } from "../../common/util";
 
 export default {
   name: "Home",
@@ -58,6 +69,9 @@ export default {
       },
       currentType: "pop",
       isShowBackTop: "false",
+      tabOffSetTop: 0,
+      isTabFixed: false,
+      saveY: 0,
     };
   },
   computed: {
@@ -79,6 +93,16 @@ export default {
       refresh();
     });
   },
+
+  activated(){
+    this.$refs.scroll.scrollTo(0,this.saveY,0);
+    this.$refs.scroll.refresh();
+  },
+
+  deactivated(){
+    this.saveY = this.$refs.scroll.scroll.y;
+  },
+
   methods: {
 
     tabClick(index) {
@@ -93,6 +117,8 @@ export default {
           this.currentType = "sell";
           break;
       }
+      this.$refs.tabControl1.currentIndex = index;
+      this.$refs.tabControl2.currentIndex = index;
     },
 
     backClick() {
@@ -101,6 +127,8 @@ export default {
 
     contentScroll(position) {
       this.isShowBackTop = -position.y > 1000;
+
+      this.isTabFixed = -position.y > this.tabOffSetTop;
     },
 
     loadMore() {
@@ -108,9 +136,12 @@ export default {
       // this.$refs.scroll.scroll.refresh();
     },
 
+    swiperImageload() {
+      this.tabOffSetTop = this.$refs.tabControl2.$el.offsetTop;
+    },
+
     getHomeMultidata() {
       getHomeMultidata().then((res) => {
-        console.log(res);
         this.banners = res.data.data.banner.list;
         this.recommends = res.data.data.recommend.list;
       });
@@ -131,7 +162,7 @@ export default {
 
 <style scoped>
 #home {
-  padding-top: 44px;
+  /* padding-top: 44px; */
   position: relative;
   height: 100vh;
 }
@@ -139,10 +170,15 @@ export default {
 .home-nav {
   background-color: #ff8198;
   color: aliceblue;
-  position: fixed;
+  /* position: fixed;
   top: 0;
   left: 0;
   right: 0;
+  z-index: 9; */
+}
+
+.tab-control {
+  position: relative;
   z-index: 9;
 }
 
