@@ -7,22 +7,37 @@
       <detail-shop-info :shop="shop"></detail-shop-info>
       <detail-goods-info :detailInfo="detailInfo" @imgLoad="imgLoad"></detail-goods-info>
       <detail-param-info :paramInfo="paramInfo"></detail-param-info>
+      <detail-comment :commentInfo="commentInfo"></detail-comment>
+      <goods-list :goods="recommends"></goods-list>
     </scroll>
   </div>
 </template>
 
 <script>
 import DetailNavBar from "./childComps/DetailNavBar.vue";
-import { getDetail, Goods, Shop ,GoodsParam} from "../../network/detail";
+import { getDetail, Goods, Shop, GoodsParam, getRecommend } from "../../network/detail";
 import DetailSwiper from "./childComps/DetailSwiper.vue";
 import DetailBaseInfo from "./childComps/DetailBaseInfo.vue";
 import DetailShopInfo from "./childComps/DetailShopInfo.vue";
 import Scroll from "../../components/common/scroll/Scroll.vue";
-import DetailGoodsInfo from './childComps/DetailGoodsInfo.vue';
-import DetailParamInfo from './childComps/DetailParamInfo.vue';
+import DetailGoodsInfo from "./childComps/DetailGoodsInfo.vue";
+import DetailParamInfo from "./childComps/DetailParamInfo.vue";
+import DetailComment from "./childComps/DetailComment.vue";
+import GoodsList from "../../components/content/goods/GoodsList.vue";
+import{itemListenerMixin} from "../../common/mixin"
 export default {
   name: "Detail",
-  components: { DetailNavBar, DetailSwiper, DetailBaseInfo, DetailShopInfo, Scroll, DetailGoodsInfo, DetailParamInfo },
+  components: {
+    DetailNavBar,
+    DetailSwiper,
+    DetailBaseInfo,
+    DetailShopInfo,
+    Scroll,
+    DetailGoodsInfo,
+    DetailParamInfo,
+    DetailComment,
+    GoodsList,
+  },
   data() {
     return {
       iid: null,
@@ -30,9 +45,13 @@ export default {
       goods: {},
       shop: {},
       detailInfo: {},
-      paramInfo:{}
+      paramInfo: {},
+      commentInfo: {},
+      recommends: [],
+      itemImgListener: null,
     };
   },
+  mixins:[itemListenerMixin],
   created() {
     this.iid = this.$route.params.iid;
 
@@ -50,16 +69,29 @@ export default {
 
       this.detailInfo = result.detailInfo;
 
-      this.paramInfo = new GoodsParam(result.itemParams.info,result.itemParams.rule);
+      this.paramInfo = new GoodsParam(result.itemParams.info, result.itemParams.rule);
 
-      console.log(res.data.result);
+      if (result.rate.cRate !== 0) {
+        this.commentInfo = result.rate.list[0];
+      }
+    });
+
+    getRecommend().then((res) => {
+      this.recommends = res.data.data.list;
+      console.log(res);
     });
   },
-  methods:{
-    imgLoad(){
+  methods: {
+    imgLoad() {
       this.$refs.scroll.refresh();
-    }
-  }
+    },
+  },
+  mounted() {
+    
+  },
+  destroyed() {
+    this.$bus.$off("itemImageLoad", this.itemImgListener);
+  },
 };
 </script>
 
@@ -70,7 +102,7 @@ export default {
   background-color: #fff;
   height: 100vh;
 }
-.detail-nav{
+.detail-nav {
   position: relative;
   z-index: 9;
   background-color: #fff;
