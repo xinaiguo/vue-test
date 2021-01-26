@@ -1,21 +1,44 @@
 <template>
   <div id="detail">
-    <detail-nav-bar class="detail-nav" @titleClick="titleClick"></detail-nav-bar>
-    <scroll class="content" ref="scroll" @scroll="contentScroll" :probe-type="3">
+    <detail-nav-bar
+      class="detail-nav"
+      @titleClick="titleClick"
+      ref="nav"
+    ></detail-nav-bar>
+    <scroll
+      class="content"
+      ref="scroll"
+      @scroll="contentScroll"
+      :probe-type="3"
+    >
       <detail-swiper :topImages="topImages"> </detail-swiper>
       <detail-base-info :goods="goods"></detail-base-info>
       <detail-shop-info :shop="shop"></detail-shop-info>
-      <detail-goods-info :detail-info="detailInfo" @imgLoad="imgLoad"></detail-goods-info>
-      <detail-param-info :paramInfo="paramInfo" ref="params"></detail-param-info>
+      <detail-goods-info
+        :detail-info="detailInfo"
+        @imgLoad="imgLoad"
+      ></detail-goods-info>
+      <detail-param-info
+        :paramInfo="paramInfo"
+        ref="params"
+      ></detail-param-info>
       <detail-comment :commentInfo="commentInfo" ref="comment"></detail-comment>
       <goods-list :goods="recommends" ref="recommend"></goods-list>
     </scroll>
+    <back-top @click.native="backClick" v-show="isShowBackTop"></back-top>
+    <detail-bottom-bar @addToCart="addToCart"></detail-bottom-bar>
   </div>
 </template>
 
 <script>
 import DetailNavBar from "./childComps/DetailNavBar.vue";
-import { getDetail, Goods, Shop, GoodsParam, getRecommend } from "../../network/detail";
+import {
+  getDetail,
+  Goods,
+  Shop,
+  GoodsParam,
+  getRecommend,
+} from "../../network/detail";
 import DetailSwiper from "./childComps/DetailSwiper.vue";
 import DetailBaseInfo from "./childComps/DetailBaseInfo.vue";
 import DetailShopInfo from "./childComps/DetailShopInfo.vue";
@@ -24,7 +47,8 @@ import DetailGoodsInfo from "./childComps/DetailGoodsInfo.vue";
 import DetailParamInfo from "./childComps/DetailParamInfo.vue";
 import DetailComment from "./childComps/DetailComment.vue";
 import GoodsList from "../../components/content/goods/GoodsList.vue";
-import { itemListenerMixin } from "../../common/mixin";
+import { itemListenerMixin, backTopMixin } from "../../common/mixin";
+import DetailBottomBar from "./childComps/DetailBottomBar.vue";
 export default {
   name: "Detail",
   components: {
@@ -37,6 +61,7 @@ export default {
     DetailParamInfo,
     DetailComment,
     GoodsList,
+    DetailBottomBar,
   },
   data() {
     return {
@@ -52,7 +77,7 @@ export default {
       themeTopy: [],
     };
   },
-  mixins: [itemListenerMixin],
+  mixins: [itemListenerMixin, backTopMixin],
   created() {
     this.iid = this.$route.params.iid;
 
@@ -63,14 +88,21 @@ export default {
       this.topImages = result.itemInfo.topImages;
 
       // 获取商品信息
-      this.goods = new Goods(result.itemInfo, result.columns, result.shopInfo.services);
+      this.goods = new Goods(
+        result.itemInfo,
+        result.columns,
+        result.shopInfo.services
+      );
 
       // 创建店铺信息
       this.shop = new Shop(result.shopInfo);
 
       this.detailInfo = result.detailInfo;
 
-      this.paramInfo = new GoodsParam(result.itemParams.info, result.itemParams.rule);
+      this.paramInfo = new GoodsParam(
+        result.itemParams.info,
+        result.itemParams.rule
+      );
 
       if (result.rate.cRate !== 0) {
         this.commentInfo = result.rate.list[0];
@@ -92,27 +124,37 @@ export default {
       this.themeTopy.push(this.$refs.params.$el.offsetTop);
       this.themeTopy.push(this.$refs.comment.$el.offsetTop);
       this.themeTopy.push(this.$refs.recommend.$el.offsetTop);
-      console.log(this.themeTopy);
+      this.themeTopy.push(Number.MAX_VALUE);
     },
     titleClick(index) {
-      console.log(index);
       this.$refs.scroll.scrollTo(0, -this.themeTopy[index], 200);
     },
     contentScroll(position) {
+      this.listenShowBackTop(position);
       const positionY = -position.y;
       let length = this.themeTopy.length;
-      for (let i = 0; i < length; i++) {
-        if (this.currentIndex !== i &&
-          ((i < length - 1 &&
-            positionY > this.themeTopy[i] &&
-            positionY < this.themeTopy[i + 1]) ||
-          (i === length - 1 && positionY > this.themeTopy[i]))
+      for (let i = 0; i < length - 1; i++) {
+        if (
+          this.currentIndex !== i &&
+          positionY >= this.themeTopy[i] &&
+          positionY < this.themeTopy[i + 1]
         ) {
           this.currentIndex = i;
-          console.log(i);
+          this.$refs.nav.currentIndex = this.currentIndex;
         }
       }
     },
+
+    addToCart(){
+        const product = {};
+        product.image = this.topImages[0];
+        product.title = this.goods.title;
+        product.desc = this.goods.desc;
+        product.price = this.goods.realPrice;
+        product.iid = this.iid;
+        // this.$store.commit('addCart',product);
+        this.$store.dispatch('addCart',product);
+    }
   },
   mounted() {},
   updated() {},

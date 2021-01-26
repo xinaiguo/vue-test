@@ -1,6 +1,6 @@
 <template>
     <div class="back-top">
-        <img src="~assets/images/back-top.png" alt="">
+        <img src="~assets/images/top.png" alt="">
     </div>
 </template>
 
@@ -14,8 +14,8 @@ export default {
 <style scoped>
     .back-top{
         position: fixed;
-        right: 10px;
-        bottom: 50px;
+        right: 8px;
+        bottom: 53px;
     }
 
     .back-top img{
