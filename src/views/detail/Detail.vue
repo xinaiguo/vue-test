@@ -1,14 +1,14 @@
 <template>
   <div id="detail">
-    <detail-nav-bar class="detail-nav"></detail-nav-bar>
-    <scroll class="content" ref="scroll">
+    <detail-nav-bar class="detail-nav" @titleClick="titleClick"></detail-nav-bar>
+    <scroll class="content" ref="scroll" @scroll="contentScroll" :probe-type="3">
       <detail-swiper :topImages="topImages"> </detail-swiper>
       <detail-base-info :goods="goods"></detail-base-info>
       <detail-shop-info :shop="shop"></detail-shop-info>
-      <detail-goods-info :detailInfo="detailInfo" @imgLoad="imgLoad"></detail-goods-info>
-      <detail-param-info :paramInfo="paramInfo"></detail-param-info>
-      <detail-comment :commentInfo="commentInfo"></detail-comment>
-      <goods-list :goods="recommends"></goods-list>
+      <detail-goods-info :detail-info="detailInfo" @imgLoad="imgLoad"></detail-goods-info>
+      <detail-param-info :paramInfo="paramInfo" ref="params"></detail-param-info>
+      <detail-comment :commentInfo="commentInfo" ref="comment"></detail-comment>
+      <goods-list :goods="recommends" ref="recommend"></goods-list>
     </scroll>
   </div>
 </template>
@@ -24,7 +24,7 @@ import DetailGoodsInfo from "./childComps/DetailGoodsInfo.vue";
 import DetailParamInfo from "./childComps/DetailParamInfo.vue";
 import DetailComment from "./childComps/DetailComment.vue";
 import GoodsList from "../../components/content/goods/GoodsList.vue";
-import{itemListenerMixin} from "../../common/mixin"
+import { itemListenerMixin } from "../../common/mixin";
 export default {
   name: "Detail",
   components: {
@@ -49,9 +49,10 @@ export default {
       commentInfo: {},
       recommends: [],
       itemImgListener: null,
+      themeTopy: [],
     };
   },
-  mixins:[itemListenerMixin],
+  mixins: [itemListenerMixin],
   created() {
     this.iid = this.$route.params.iid;
 
@@ -80,15 +81,41 @@ export default {
       this.recommends = res.data.data.list;
       console.log(res);
     });
+
+    this.$nextTick(() => {});
   },
   methods: {
     imgLoad() {
       this.$refs.scroll.refresh();
+      this.themeTopy = [];
+      this.themeTopy.push(0);
+      this.themeTopy.push(this.$refs.params.$el.offsetTop);
+      this.themeTopy.push(this.$refs.comment.$el.offsetTop);
+      this.themeTopy.push(this.$refs.recommend.$el.offsetTop);
+      console.log(this.themeTopy);
+    },
+    titleClick(index) {
+      console.log(index);
+      this.$refs.scroll.scrollTo(0, -this.themeTopy[index], 200);
+    },
+    contentScroll(position) {
+      const positionY = -position.y;
+      let length = this.themeTopy.length;
+      for (let i = 0; i < length; i++) {
+        if (this.currentIndex !== i &&
+          ((i < length - 1 &&
+            positionY > this.themeTopy[i] &&
+            positionY < this.themeTopy[i + 1]) ||
+          (i === length - 1 && positionY > this.themeTopy[i]))
+        ) {
+          this.currentIndex = i;
+          console.log(i);
+        }
+      }
     },
   },
-  mounted() {
-    
-  },
+  mounted() {},
+  updated() {},
   destroyed() {
     this.$bus.$off("itemImageLoad", this.itemImgListener);
   },
