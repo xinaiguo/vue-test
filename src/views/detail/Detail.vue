@@ -49,6 +49,8 @@ import DetailComment from "./childComps/DetailComment.vue";
 import GoodsList from "../../components/content/goods/GoodsList.vue";
 import { itemListenerMixin, backTopMixin } from "../../common/mixin";
 import DetailBottomBar from "./childComps/DetailBottomBar.vue";
+import {mapActions} from "vuex"
+
 export default {
   name: "Detail",
   components: {
@@ -117,6 +119,7 @@ export default {
     this.$nextTick(() => {});
   },
   methods: {
+    ...mapActions(['addCart']),
     imgLoad() {
       this.$refs.scroll.refresh();
       this.themeTopy = [];
@@ -153,7 +156,14 @@ export default {
         product.price = this.goods.realPrice;
         product.iid = this.iid;
         // this.$store.commit('addCart',product);
-        this.$store.dispatch('addCart',product);
+
+        this.addCart(product).then(res => {
+          this.$toast.show(res,2000)
+        })
+
+        // this.$store.dispatch('addCart',product).then(res => {
+        //   console.log(res);
+        // })
     }
   },
   mounted() {},
