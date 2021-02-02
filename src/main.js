@@ -4,7 +4,7 @@ import router from './router';
 import store from './store'
 import toast from './components/common/toast'
 import FastClick from 'fastclick'
-
+import VueLazyload from "vue-lazyload";
 
 Vue.config.productionTip = false
 Vue.config.devtools = true;
@@ -14,6 +14,9 @@ Vue.use(toast)
 
 // 解决移动端点击延迟300秒
 FastClick.attach(document.body)
+
+// 图片懒加载
+Vue.use(VueLazyload)
 
 
 new Vue({
